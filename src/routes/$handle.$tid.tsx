@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Markdown } from "@/components/md";
 import ThemeSwitcher from "@/components/theme-switcher";
 import { Link } from "@tanstack/react-router";
+import { Spinner } from "@/components/spinner";
 
 export const Route = createFileRoute("/$handle/$tid")({
   component: RouteComponent,
@@ -52,11 +53,14 @@ function RouteComponent() {
   } | null>(null);
 
   const [err, setErr] = useState<Error | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
     const fetchMarkdown = async () => {
       if (!handle || !tid) {
         setErr(new Error("Handle or tid is missing"));
+        setLoading(false);
         return;
       }
       // resolve user
@@ -64,6 +68,7 @@ function RouteComponent() {
 
       if (!pds) {
         setErr(new Error(`PDS not found for handle: ${handle}`));
+        setLoading(false);
         return;
       }
       setUser(pds);
@@ -81,6 +86,7 @@ function RouteComponent() {
             `Failed to fetch record: ${rec ? rec.statusText : "No response"}`,
           ),
         );
+        setLoading(false);
         return;
       }
 
@@ -91,6 +97,8 @@ function RouteComponent() {
       } else {
         setErr(new Error("Invalid record format or no content found"));
       }
+      setTimeout(() => setFadeOut(true), 100); // Start fade out
+      setTimeout(() => setLoading(false), 400); // Remove after fade
     };
 
     fetchMarkdown();
@@ -100,31 +108,53 @@ function RouteComponent() {
     return <div>Error: {err.message}</div>;
   }
 
+  if (loading) {
+    return (
+      <div
+        className={`bg-white dark:bg-black flex h-screen justify-center align-middle loading-fade${fadeOut ? " out" : ""}`}
+      >
+        <Spinner />
+      </div>
+    );
+  }
+
   if (!md) {
-    return <div className="flex justify-center align-middle">Loading...</div>;
+    return null;
   }
 
   return (
     <>
       <div className="flex justify-center items-center flex-col p-4">
-        <div className="max-w-prose blur-reveal">
+        <div className="max-w-prose blur-reveal mb-24">
           <div className="blur-reveal-content">
             <div className="flex justify-between items-center w-full mb-24">
               <Link to="/">whitewind reader</Link>
               <ThemeSwitcher />
             </div>
             <h1 className="text-5xl font-bold mb-4">{md?.title}</h1>
-            <p className="text-gray-500 mb-8">
-              {user?.handle} -{" "}
+            <p className="text-gray-400 mb-8">
+              <a
+                href={`https://bsky.app/profile/${user?.handle || handle}`}
+                className="text-fuchsia-800/75 dark:text-fuchsia-300/75 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 transition-colors duration-200"
+              >
+                {user?.handle || handle}
+              </a>{" "}
+              -{" "}
               {new Date(md?.createdAt).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
               })}
             </p>
-            <Markdown>{md?.content}</Markdown>
+            <Markdown initialDelayMs={150}>{md?.content}</Markdown>
           </div>
         </div>
+        <Link
+          to="/"
+          className="text-fuchsia-800 dark:text-fuchsia-300 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 transition-colors duration-200"
+        >
+          back to home
+        </Link>
       </div>
 
       <div className="progressive-blur-overlay" />

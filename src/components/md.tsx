@@ -43,7 +43,7 @@ export function Markdown({
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
+        rehypePlugins={[[rehypeHighlight, { detect: true }]]}
       >
         {children}
       </ReactMarkdown>
